@@ -1,6 +1,9 @@
 import torch
 from torchvision import datasets, transforms, models
 import json
+from collections import OrderedDict
+from torch import nn
+
 
 def data_setup(data_dir,batch_size):
     # Train trasforms
@@ -29,3 +32,40 @@ def map_labels(file):
         cat_to_name = json.load(f,strict=False)
 
     return cat_to_name 
+
+def create_network(arch="VGG",hidden_units=512):
+    
+    if arch == 'VGG':
+        model = models.vgg16(pretrained=True)
+
+        for param in model.parameters():
+            param.requires_grad = False
+            
+        model.classifier = nn.Sequential(OrderedDict([
+                          ('fc1', nn.Linear(25088, 4096)),
+                          ('relu', nn.ReLU()),
+                          ('fc2', nn.Linear(4096, 1000)),
+                          ('relu', nn.ReLU()),
+                          ('fc3', nn.Linear(1000, hidden_units)),
+                          ('relu', nn.ReLU()),
+                          ('fc4', nn.Linear(hidden_units, 102)),
+                          ('output', nn.LogSoftmax(dim=1))
+                          ]))
+
+    elif arch == 'Densenet':
+        model = models.densenet121(pretrained=True)
+       
+    
+        for param in model.parameters():
+            param.requires_grad = False
+                                  
+        model.classifier = nn.Sequential(OrderedDict([
+                          ('fc1', nn.Linear(1024, 1000)),
+                          ('relu', nn.ReLU()),
+                          ('fc2', nn.Linear(1000, hidden_units)),
+                          ('relu', nn.ReLU()),
+                          ('fc3', nn.Linear(hidden_units, 102)),
+                          ('output', nn.LogSoftmax(dim=1))
+                          ]))
+    
+    return model
