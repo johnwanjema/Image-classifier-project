@@ -3,6 +3,10 @@ from torchvision import datasets, transforms, models
 import json
 from collections import OrderedDict
 from torch import nn,optim
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -172,3 +176,44 @@ def load_checkpoint(filepath):
     model.load_state_dict(checkpoint['state_dict'])
         
     return model,checkpoint['class_to_idx'],checkpoint['epochs'],checkpoint['learning_rate'],checkpoint['optimizer_state_dict']
+
+
+def process_image(image_path):
+    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+        returns an Numpy array
+    '''
+    # Load and preprocess the image
+    image = Image.open(image_path).convert("RGB")
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    
+    img_tensor = transform(image)
+#     input_batch = input_tensor.unsqueeze(0)  # Add batch dimension
+    
+    return img_tensor
+
+def imshow(image, ax=None, title=None, normalize=True):
+    """Imshow for Tensor."""
+    if ax is None:
+        fig, ax = plt.subplots()
+    image = image.numpy().transpose((1, 2, 0))
+
+    if normalize:
+        mean = np.array([0.485, 0.456, 0.406])
+        std = np.array([0.229, 0.224, 0.225])
+        image = std * image + mean
+        image = np.clip(image, 0, 1)
+
+    ax.imshow(image)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.tick_params(axis='both', length=0)
+    ax.set_xticklabels('')
+    ax.set_yticklabels('')
+
+    return ax
