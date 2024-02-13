@@ -3,6 +3,9 @@ from torchvision import datasets, transforms, models
 import json
 from collections import OrderedDict
 from torch import nn,optim
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -124,3 +127,93 @@ def train(model, trainloader, testloader,epochs=1,print_every=10,learning_rate=0
                 running_loss = 0
                 
                 model.train()
+                
+def validation(model,testloader):
+    criterion = nn.NLLLoss()
+    model.to(device);
+    accuracy = 0
+    test_loss = 0
+    # Turn off gradients for validation, saves memory and computations
+    with torch.no_grad():
+        model.eval()
+        for inputs, labels in testloader:
+
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            log_ps = model(inputs)
+            test_loss += criterion(log_ps, labels)
+
+            ps = torch.exp(log_ps)
+            top_p, top_class = ps.topk(1, dim=1)
+            equals = top_class == labels.view(*top_class.shape)
+            accuracy += torch.mean(equals.type(torch.FloatTensor))
+
+    model.train()
+
+    print("Accuracy: {:.3f}".format(accuracy/len(testloader)))
+
+def save_model(model,file,dataset,epochs=1,arch='VGG',learning_rate=0.01,hidden_units=512):
+    optimizer = optim.AdamW(model.classifier.parameters(),learning_rate)
+    checkpoint = {
+            'hidden_units': hidden_units,
+            'architecture': arch,
+            'state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'epochs': epochs,
+            'classifier': model.classifier,
+            'class_to_idx': dataset.class_to_idx,
+            'learning_rate': learning_rate
+        }
+
+    torch.save(checkpoint, file)
+
+def load_checkpoint(filepath):
+    
+    checkpoint = torch.load(filepath)
+    
+    model = create_network(checkpoint['architecture'],checkpoint['hidden_units'])
+    
+    model.load_state_dict(checkpoint['state_dict'])
+        
+    return model,checkpoint['class_to_idx'],checkpoint['epochs'],checkpoint['learning_rate'],checkpoint['optimizer_state_dict']
+
+
+def process_image(image_path):
+    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+        returns an Numpy array
+    '''
+    # Load and preprocess the image
+    image = Image.open(image_path).convert("RGB")
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    
+    img_tensor = transform(image)
+#     input_batch = input_tensor.unsqueeze(0)  # Add batch dimension
+    
+    return img_tensor
+
+def imshow(image, ax=None, title=None, normalize=True):
+    """Imshow for Tensor."""
+    if ax is None:
+        fig, ax = plt.subplots()
+    image = image.numpy().transpose((1, 2, 0))
+
+    if normalize:
+        mean = np.array([0.485, 0.456, 0.406])
+        std = np.array([0.229, 0.224, 0.225])
+        image = std * image + mean
+        image = np.clip(image, 0, 1)
+
+    ax.imshow(image)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.tick_params(axis='both', length=0)
+    ax.set_xticklabels('')
+    ax.set_yticklabels('')
+
+    return ax
