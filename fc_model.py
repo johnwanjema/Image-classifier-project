@@ -4,7 +4,6 @@ import json
 from collections import OrderedDict
 from torch import nn,optim
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if torch.backends.mps.is_available():
@@ -148,3 +147,28 @@ def validation(model,testloader):
     model.train()
 
     print("Accuracy: {:.3f}".format(accuracy/len(testloader)))
+
+def save_model(model,file,dataset,epochs=1,arch='VGG',learning_rate=0.01,hidden_units=512):
+    optimizer = optim.AdamW(model.classifier.parameters(),learning_rate)
+    checkpoint = {
+            'hidden_units': hidden_units,
+            'architecture': arch,
+            'state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'epochs': epochs,
+            'classifier': model.classifier,
+            'class_to_idx': dataset.class_to_idx,
+            'learning_rate': learning_rate
+        }
+
+    torch.save(checkpoint, file)
+
+def load_checkpoint(filepath):
+    
+    checkpoint = torch.load(filepath)
+    
+    model = create_network(checkpoint['architecture'],checkpoint['hidden_units'])
+    
+    model.load_state_dict(checkpoint['state_dict'])
+        
+    return model,checkpoint['class_to_idx'],checkpoint['epochs'],checkpoint['learning_rate'],checkpoint['optimizer_state_dict']
