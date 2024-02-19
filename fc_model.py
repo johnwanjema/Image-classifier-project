@@ -78,7 +78,7 @@ def create_network(arch="VGG",hidden_units=512):
     
     return model
 
-def train(model, trainloader, testloader,epochs=1,print_every=10,learning_rate=0.001):
+def train(model, trainloader, testloader,epochs=1,learning_rate=0.001,print_every=10):
 
     criterion = nn.NLLLoss()
     optimizer = optim.AdamW(model.classifier.parameters(),learning_rate)
