@@ -78,7 +78,7 @@ def create_network(arch="VGG",hidden_units=512):
     
     return model
 
-def train(model, trainloader, testloader,epochs=1,print_every=10,learning_rate=0.001):
+def train(model, trainloader, testloader,epochs=1,learning_rate=0.001,print_every=10):
 
     criterion = nn.NLLLoss()
     optimizer = optim.AdamW(model.classifier.parameters(),learning_rate)
@@ -217,3 +217,60 @@ def imshow(image, ax=None, title=None, normalize=True):
     ax.set_yticklabels('')
 
     return ax
+
+def predict_top_k_classes(image_path,model, k=5):
+    # Pass model to cpu
+    model.to('cpu')
+
+    # Load and preprocess the image
+    input_tensor = process_image(image_path)
+    
+    input_batch = input_tensor.unsqueeze(0)  # Add batch dimension
+
+    # Move the input tensor to the GPU if available
+    if torch.cuda.is_available():
+        input_batch = input_batch.cuda()
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    # Make the prediction
+    with torch.no_grad():
+        output = model(input_batch)
+
+    # Get the top k predicted classes and probabilities
+    probabilities, predicted_classes = torch.topk(nn.functional.softmax(output, dim=1), k)
+
+    # If on CUDA, move tensors to CPU before converting to NumPy
+    if torch.cuda.is_available():
+        probabilities = probabilities.cpu()
+        predicted_classes = predicted_classes.cpu()
+
+    # Convert tensor results to Python lists
+    probabilities = probabilities.squeeze().numpy().tolist()
+    predicted_classes = predicted_classes.squeeze().numpy().tolist()
+
+    return probabilities, predicted_classes
+
+def plot_probabilities(image_path, probabilities,class_to_idx, predicted_classes, class_labels):
+    # Load and show the input image
+    img = process_image(image_path)
+    imshow(img)
+
+    # Convert predicted class indices to class names using the provided dictionary
+    idx_to_class = {x: y for y, x in class_to_idx.items()}
+    top_classes = [idx_to_class[x] for x in predicted_classes]
+
+    predicted_labels = [class_labels.get(str(cls), f'Class {cls}') for cls in top_classes]
+
+    # Plot the probabilities as a bar graph
+    fig, ax = plt.subplots()
+    y_pos = np.arange(len(probabilities))
+    ax.barh(y_pos, probabilities, align='center')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(predicted_labels)
+    ax.invert_yaxis()  # Invert y-axis for better visualization
+    ax.set_xlabel('Probability')
+    ax.set_title('Top 5 Predicted Classes')
+
+    plt.show()
