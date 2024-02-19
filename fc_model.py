@@ -217,3 +217,37 @@ def imshow(image, ax=None, title=None, normalize=True):
     ax.set_yticklabels('')
 
     return ax
+
+def predict_top_k_classes(image_path,model, k=5):
+    # Pass model to cpu
+    model.to('cpu')
+
+    # Load and preprocess the image
+    input_tensor = process_image(image_path)
+    
+    input_batch = input_tensor.unsqueeze(0)  # Add batch dimension
+
+    # Move the input tensor to the GPU if available
+    if torch.cuda.is_available():
+        input_batch = input_batch.cuda()
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    # Make the prediction
+    with torch.no_grad():
+        output = model(input_batch)
+
+    # Get the top k predicted classes and probabilities
+    probabilities, predicted_classes = torch.topk(nn.functional.softmax(output, dim=1), k)
+
+    # If on CUDA, move tensors to CPU before converting to NumPy
+    if torch.cuda.is_available():
+        probabilities = probabilities.cpu()
+        predicted_classes = predicted_classes.cpu()
+
+    # Convert tensor results to Python lists
+    probabilities = probabilities.squeeze().numpy().tolist()
+    predicted_classes = predicted_classes.squeeze().numpy().tolist()
+
+    return probabilities, predicted_classes
