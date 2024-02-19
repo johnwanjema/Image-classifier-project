@@ -251,3 +251,26 @@ def predict_top_k_classes(image_path,model, k=5):
     predicted_classes = predicted_classes.squeeze().numpy().tolist()
 
     return probabilities, predicted_classes
+
+def plot_probabilities(image_path, probabilities,class_to_idx, predicted_classes, class_labels):
+    # Load and show the input image
+    img = process_image(image_path)
+    imshow(img)
+
+    # Convert predicted class indices to class names using the provided dictionary
+    idx_to_class = {x: y for y, x in class_to_idx.items()}
+    top_classes = [idx_to_class[x] for x in predicted_classes]
+
+    predicted_labels = [class_labels.get(str(cls), f'Class {cls}') for cls in top_classes]
+
+    # Plot the probabilities as a bar graph
+    fig, ax = plt.subplots()
+    y_pos = np.arange(len(probabilities))
+    ax.barh(y_pos, probabilities, align='center')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(predicted_labels)
+    ax.invert_yaxis()  # Invert y-axis for better visualization
+    ax.set_xlabel('Probability')
+    ax.set_title('Top 5 Predicted Classes')
+
+    plt.show()
