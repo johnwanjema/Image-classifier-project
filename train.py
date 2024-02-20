@@ -14,7 +14,7 @@ def get_input_args():
     parser.add_argument('--arch', default='VGG', choices=['VGG', 'Densenet'])
     parser.add_argument('--learning_rate', type=float, default=0.01)
     parser.add_argument('--hidden_units', default=512)
-    parser.add_argument('--epochs', type=int, default=1)
+    parser.add_argument('--epochs', type=int, default=5)
     parser.add_argument('--mode', default='cpu')
     parser.add_argument('--save_file', default='model_checkpoint.pth')
 
